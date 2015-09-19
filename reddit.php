@@ -7,7 +7,8 @@
  *
  * Provides a SDK for accessing the Reddit APIs
  * Useage:
- *   $redditor = new reddit($client_id, $client_secret)->login($username, $password);
+ *   $reddit = new reddit($client_id, $client_secret, $user_agent)
+ *   $redditor = $reddit->login($username, $password);
  *   $karma = $redditor->getKarma();
  */
 class Reddit {
@@ -47,7 +48,7 @@ class Reddit {
 		if ($this->isAuthorized() && $username == $this->getUser())
 			return $this;
 
-		$postvals = sprintf("username=%s&password=%s&grant_type=password&client_id=%s",
+		$postvals = sprintf("grant_type=password&username=%s&password=%s&client_id=%s",
 			$username,
 			$password,
 			$this->client_id);
@@ -792,21 +793,15 @@ class Reddit {
 	/**
 	 * Get users
 	 *
-	 * Get users of subreddit who are [see @param $where]
+	 * Get users of subreddit who are [see @param $where ]
 	 * @link http://www.reddit.com/dev/api/oauth#GET_about_{where}
 	 * @param string $where banned|muted|wikibanned|contributors|wikicontributors|moderators
 	 * @param string $subreddit The subreddit to use
-	 * @param int $limit The maximum number of items to return (max 1000)
-	 * @param string $after Return entries starting after this user
-	 * @param string $before Return entries starting before this user
 	 */
-	public function getUsers($where, $subreddit, $limit = 100, $after, $before) {
+	public function getUsers($where, $subreddit) {
 		$urlUsers = self::$ENDPOINT_OAUTH . "/r/$subreddit/about/$where.json";
-		$postData = sprintf("limit=%s&after=%s&before=%s",
-			$limit,
-			$after,
-			$before);
-		$response = self::runCurl($urlUsers, $postData);
+
+		$response = self::runCurl($urlUsers);
 
 		return $response;
 	}
@@ -817,16 +812,54 @@ class Reddit {
 	 * Update stylesheet of subreddit
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_subreddit_stylesheet
 	 * @param string $subreddit The subreddit to use
-	 * @param string $content the new stylesheet content
-	 * @param string $reason description, max 256 characters
+	 * @param string $content The new stylesheet content
+	 * @param string $reason Description, max 256 characters
 	 */
-	public function stylesheet($subreddit, $content, $reason = '') {
+	public function setStylesheet($subreddit, $content, $reason = '') {
 		$urlStylesheet = self::$ENDPOINT_OAUTH . "/r/$subreddit/api/subreddit_stylesheet";
 		$postData = sprintf("op=save&reason=%s&stylesheet_contents=%s&api_type=json",
 			$reason,
 			$content);
 
 		$response = self::runCurl($urlStylesheet, $postData);
+
+		return $response->data->stylesheet;
+	}
+
+	/**
+	 * Get stylesheet
+	 *
+	 * fetch stylesheet of subreddit
+	 * @link http://www.reddit.com/dev/api/oauth#POST_api_subreddit_stylesheet
+	 * @param string $subreddit The subreddit to use
+	 */
+	public function getStylesheet($subreddit) {
+		$urlStylesheet = self::$ENDPOINT_OAUTH . "/r/$subreddit/about/stylesheet";
+
+		$response = self::runCurl($urlStylesheet);
+
+		return $response;
+	}
+
+	/**
+	 * Upload subreddit image
+	 *
+	 * fetch stylesheet of subreddit
+	 * @link http://www.reddit.com/dev/api/oauth#POST_api_upload_sr_img
+	 * @param string $file Image file path. Allowed formats: jpg & png. Max size 500kb.
+	 * @param string $subreddit The subreddit to use
+	 * @param bool $logo Determine if image should be used as logo, ignores name if true
+	 * @param string $name Image name
+	 */
+	public function uploadSubImage($file, $subreddit, $logo, $name = '') {
+		$urlImage = self::$ENDPOINT_OAUTH . "/r/$subreddit/api/upload_sr_img";
+		$postData = sprintf("header=%d&name=%simg_type=%s&file=%s",
+			(int)$logo,
+			$name,
+			end(explode(".", $file)),
+			$file);
+
+		$response = self::runCurl($urlImage, $postData);
 
 		return $response;
 	}
@@ -855,9 +888,11 @@ class Reddit {
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_CONNECTTIMEOUT => 5,
 			CURLOPT_TIMEOUT        => 10,
-			CURLOPT_HEADER         => false,
-			CURLINFO_HEADER_OUT    => false,
-			CURLOPT_HTTPHEADER     => ["Authorization: {$this->token_type} {$this->access_token}"],
+			CURLOPT_HTTPAUTH       => CURLAUTH_BASIC,
+			CURLOPT_USERPWD        => $this->client_id . ":" . $this->client_secret,
+			CURLOPT_SSLVERSION     => 4,
+			CURLOPT_SSL_VERIFYPEER => false,
+			CURLOPT_SSL_VERIFYHOST => 2
 		];
 
 		if (!empty($this->user_agent)) {
@@ -871,12 +906,10 @@ class Reddit {
 			$options[ CURLOPT_CUSTOMREQUEST ] = "POST";
 		}
 
-		if ($auth) {
-			$options[ CURLOPT_HTTPAUTH ] = CURLAUTH_BASIC;
-			$options[ CURLOPT_USERPWD ] = $this->client_id . ":" . $this->client_secret;
-			$options[ CURLOPT_SSLVERSION ] = 4;
-			$options[ CURLOPT_SSL_VERIFYPEER ] = false;
-			$options[ CURLOPT_SSL_VERIFYHOST ] = 2;
+		if (!$auth) {
+			$options[ CURLINFO_HEADER_OUT ] = false;
+			$options[ CURLOPT_HEADER ] = false;
+			$options[ CURLOPT_HTTPHEADER ] = ["Authorization: {$this->token_type} {$this->access_token}"];
 		}
 
 		curl_setopt_array($ch, $options);
