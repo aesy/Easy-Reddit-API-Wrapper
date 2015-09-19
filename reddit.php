@@ -790,6 +790,48 @@ class Reddit {
 	}
 
 	/**
+	 * Get users
+	 *
+	 * Get users of subreddit who are [see @param $where]
+	 * @link http://www.reddit.com/dev/api/oauth#GET_about_{where}
+	 * @param string $where banned|muted|wikibanned|contributors|wikicontributors|moderators
+	 * @param string $subreddit The subreddit to use
+	 * @param int $limit The maximum number of items to return (max 1000)
+	 * @param string $after Return entries starting after this user
+	 * @param string $before Return entries starting before this user
+	 */
+	public function getUsers($where, $subreddit, $limit = 100, $after, $before) {
+		$urlUsers = self::$ENDPOINT_OAUTH . "/r/$subreddit/about/$where.json";
+		$postData = sprintf("limit=%s&after=%s&before=%s",
+			$limit,
+			$after,
+			$before);
+		$response = self::runCurl($urlUsers, $postData);
+
+		return $response;
+	}
+
+	/**
+	 * Update stylesheet
+	 *
+	 * Update stylesheet of subreddit
+	 * @link http://www.reddit.com/dev/api/oauth#POST_api_subreddit_stylesheet
+	 * @param string $subreddit The subreddit to use
+	 * @param string $content the new stylesheet content
+	 * @param string $reason description, max 256 characters
+	 */
+	public function stylesheet($subreddit, $content, $reason = '') {
+		$urlStylesheet = self::$ENDPOINT_OAUTH . "/r/$subreddit/api/subreddit_stylesheet";
+		$postData = sprintf("op=save&reason=%s&stylesheet_contents=%s&api_type=json",
+			$reason,
+			$content);
+
+		$response = self::runCurl($urlStylesheet, $postData);
+
+		return $response;
+	}
+
+	/**
 	 * Save token in a cookie
 	 */
 	private function saveToken() {
