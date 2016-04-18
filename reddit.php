@@ -45,7 +45,7 @@ class Reddit {
 	 * @return Reddit or false if authorization fail
 	 */
 	public function login($username, $password, $remember = true) {
-		if ($this->isAuthorized() && $username == $this->getUser())
+		if ($this->isAuthorized() && $username == $this->getUser()->name)
 			return $this;
 
 		$postvals = sprintf("grant_type=password&username=%s&password=%s&client_id=%s",
