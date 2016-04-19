@@ -10,4 +10,4 @@ To-do List
 
 License
 -------
-See LICENSE file.
+See LICENSE file

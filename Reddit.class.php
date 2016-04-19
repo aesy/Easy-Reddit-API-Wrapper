@@ -114,7 +114,7 @@ class Reddit {
 	 * @param bool $force force new authorization
 	 * @return Reddit or false if authorization fail
 	 */
-	public function authorize($scopes = "*", $redirect = true, $remember = true, $force = false) {
+	public function authorize($scopes = "*", $redirect = true, $remember = false, $force = false) {
 		if (!$this->redirect_endpoint)
 			throw new Exception("Invalid redirect URI");
 
@@ -631,8 +631,8 @@ class Reddit {
 	}
 
 	/*
- * livemanage goes here
- */
+	 * Missing livemanage api endpoints goes here.
+	 */
 
 	/**
 	 * Delete Banner
@@ -1347,11 +1347,11 @@ class Reddit {
 	}
 
 	/*
-	 * modself goes here
+	 * Missing modself api endpoints goes here.
 	 */
 
 	/*
-	 * modwiki goes here
+	 * Missing modwiki api endpoints goes here.
 	 */
 
 	/**
@@ -1972,19 +1972,9 @@ class Reddit {
 		return self::runCurl($url, $postData);
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/*
+	 * Additional missing api endpoints goes here.
+	 */
 
 	/**
 	 * Get listing
