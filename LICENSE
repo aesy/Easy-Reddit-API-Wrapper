@@ -1,4 +1,7 @@
-Copyright (c) 2014 Jonathan LeBlanc
+The MIT License (MIT)
+
+Copyright for portions of Easy-Reddit-API-Wrapper are held by Jonathan LeBlanc
+as part of reddit-php-sdk. All other copyright are held by Isak Wertwein, 2016.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
