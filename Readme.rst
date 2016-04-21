@@ -29,8 +29,8 @@ Or redirect to Reddit authorization page::
 
 Make API requests::
 
-    $user = $reddit->getCurrentUser(); // p.s. be sure you have permission/use the correct scope to make the request
-    assert($user->comment_karma > PHP_INT_MAX, "Peasant!");
+	$user = $reddit->getCurrentUser(); // p.s. be sure you have permission/use the correct scope to make the request
+	assert($user->comment_karma > PHP_INT_MAX, "Peasant!");
 
 To learn more about the API, read up on `Reddit <https://www.reddit.com/dev/api>`_ and check out the `Reddit class <Reddit.class.php>`_ itself, it is well documented!
 
@@ -41,9 +41,9 @@ Easy mode::
 	require("Reddit.class.php");
 
 	$reddit = Reddit::App($client_id, $client_secret, $redirect_uri);
-    $reddit->authorize("identity", true); // redirect if needed
+	$reddit->authorize("identity", true); // redirect if needed
 
-    // User is authorized!
+	// User is authorized!
 
 Or a little more explicit::
 
@@ -52,12 +52,12 @@ Or a little more explicit::
 	$reddit = Reddit::App($client_id, $client_secret, $redirect_uri);
 	$reddit->authorize("identity", false);
 
-    if ($reddit->isAuthorized()) {
-    	// User is authorized!
-    } else {
-    	$url = $reddit->getAuthURL();
-    	header('Location: ' . $url);
-    }
+	if ($reddit->isAuthorized()) {
+		// User is authorized!
+	} else {
+		$url = $reddit->getAuthURL();
+		header('Location: ' . $url);
+	}
 
 To-do List
 ----------
