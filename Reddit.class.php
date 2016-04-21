@@ -18,7 +18,6 @@ class Reddit {
 	const ENDPOINT_OAUTH_AUTHORIZE = "https://www.reddit.com/api/v1/authorize";
 	const ENDPOINT_OAUTH_TOKEN = "https://www.reddit.com/api/v1/access_token";
 	const ENDPOINT_OAUTH_REVOKE = "https://www.reddit.com/api/v1/revoke_token";
-	const ENDPOINT_OAUTH_REDIRECT = "http://localhost/reddit/test.php";
 
 	public static $scopes = [ "creddits", "modcontributors", "modconfig", "subscribe", "wikiread", "wikiedit", "vote",
 							  "mysubreddits", "submit", "modlog", "modposts", "modflair", "save", "modothers", "read",
@@ -45,7 +44,7 @@ class Reddit {
 	 * @param string $client_id
 	 * @param string $client_secret
 	 * @param string $redirect_uri
-	 * @param string $user_agent (optional) eg. "webapp:{APPNAME}:v1.0 (by /u/{USERNAME})"
+	 * @param string $user_agent eg. "webapp:{APPNAME}:v1.0 (by /u/{USERNAME})"
 	 */
 	public function __construct($client_id, $client_secret, $redirect_uri = "", $user_agent = "") {
 		$this->client_id = $client_id;
@@ -55,14 +54,16 @@ class Reddit {
 	}
 
 	/**
-	 * Class Constructor Alias
+	 * App
+	 *
+	 * Class constructor alias
 	 *
 	 * @link https://github.com/reddit/reddit/wiki/
 	 * @link https://www.reddit.com/dev/api
 	 * @param string $client_id
 	 * @param string $client_secret
 	 * @param string $redirect_uri
-     * @param string $user_agent (optional) eg. "webapp:{APPNAME}:v1.0 (by /u/{USERNAME})"
+     * @param string $user_agent eg. "webapp:{APPNAME}:v1.0 (by /u/{USERNAME})"
 	 * @return Reddit instance
 	 */
 	public static function App($client_id, $client_secret, $redirect_uri = "", $user_agent = "") {
@@ -72,14 +73,20 @@ class Reddit {
 	/**
 	 * Login
 	 *
-	 * Authenticate user by password
+	 * Authenticates user by password
 	 *
 	 * @param $username
 	 * @param $password
 	 * @param bool|int $remember Number of seconds to remember user (uses cookies), false if not at all (default).
 	 * @return Reddit instance or false if authorization fail
+	 * @throws InvalidArgumentException
 	 */
 	public function login($username, $password, $remember = false) {
+		if (!is_string($username) || !is_string($password))
+			throw new InvalidArgumentException("\$username & \$password parameters in login method must be of type string.");
+		elseif ($remember !== false && !is_numeric($remember))
+			throw new InvalidArgumentException("\$remember parameter in login method must be numeric or false.");
+
 		$this->scope = join(",", Reddit::$scopes);
 		$this->remember = $remember;
 
@@ -113,26 +120,34 @@ class Reddit {
 	/**
 	 * Authorize
 	 *
-	 * Authorize user by link
+	 * Authorizes user by link
 	 *
-	 * @param string|array $scopes available scopes can be found in Reddit::scopes. Pass "*" to use all.
-	 * @param bool $redirect redirect to authorization url
+	 * @param string|array $scopes Available scopes can be found in Reddit::scopes. Pass "*" to use all.
+	 * @param bool $redirect Redirect to authorization url
 	 * @param bool|int $remember Number of seconds to remember user (uses cookies), false if not at all (default).
-	 * @param bool $force force new authorization
-	 * @throws Exception
+	 * @param bool $force Force new authorization
 	 * @return Reddit instance or false if authorization fail
+	 * @throws Exception|InvalidArgumentException
 	 */
 	public function authorize($scopes = "*", $redirect = true, $remember = false, $force = false) {
 		if (!$this->redirect_endpoint)
 			throw new Exception("Invalid redirect URI");
+		elseif (!is_bool($redirect) || !is_bool($force))
+			throw new InvalidArgumentException("\$redirect & \$force parameters in authorize method must be of type boolean.");
+		elseif ($remember !== false && !is_numeric($remember))
+			throw new InvalidArgumentException("\$remember parameter in authorize method must be numeric or false.");
 
 		if ($scopes == "*")
 			$scopes = Reddit::$scopes;
 
 		if (!$this->validateScope($scopes))
 			throw new Exception("Invalid scope");
-		else
+		elseif (is_string($scopes))
+			$this->scope = $scopes;
+		elseif (is_array($scopes))
 			$this->scope = join(",", $scopes);
+		else
+			throw new Exception("\$scopes parameter in authorize method must be of type string or array.\"");
 
 		$this->remember = $remember;
 
@@ -171,27 +186,31 @@ class Reddit {
 	}
 
 	/**
-	 * revokeToken Alias
+	 * Unauthorize
+	 *
+	 * revokeToken alias
 	 *
 	 * @return object|bool cURL Response
 	 */
 	public function unAuthorize() {
-		$this->revokeToken();
+		return $this->revokeToken();
 	}
 
 	/**
-	 * revokeToken Alias
+	 * Logout
+	 *
+	 * revokeToken alias
 	 *
 	 * @return object|bool cURL Response
 	 */
 	public function logout() {
-		$this->revokeToken();
+		return $this->revokeToken();
 	}
 
 	/**
 	 * Is Authorized
 	 *
-	 * Check if reddit token is set
+	 * Checks if reddit token is set
 	 *
 	 * @return bool
 	 */
@@ -212,6 +231,8 @@ class Reddit {
 	/**
 	 * Get Authorization URL
 	 *
+	 * Gets authorization url
+	 *
 	 * @return string
 	 */
 	public function getAuthURL() {
@@ -225,9 +246,9 @@ class Reddit {
 	}
 
 	/**
-	 * Add comment
+	 * Add Comment
 	 *
-	 * Submit a new comment or reply to a message
+	 * Submits a new comment or reply to a message
 	 *
 	 * @scope Based on thing. If thing is x then scope must be y:
 	 *      link or comment: submit
@@ -235,8 +256,8 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_comment
 	 * @param string $thing_id The full name of parent thing
 	 * @param string $text Raw markdown text
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function addComment($thing_id, $text) {
 		if (!is_string($thing_id) || !is_string($text))
@@ -293,8 +314,8 @@ class Reddit {
 	 * @scope any
 	 * @link http://www.reddit.com/dev/api/oauth#GET_captcha_{iden}
 	 * @param string $iden The iden value of a new CAPTCHA from getNewCaptcha method
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getCaptchaImg($iden) {
 		if (!is_string($iden))
@@ -308,14 +329,14 @@ class Reddit {
 	/**
 	 * Give Gold
 	 *
-	 * Spend reddit gold creddits on giving gold to other users
+	 * Spends reddit gold creddits on giving gold to other users
 	 *
 	 * @scope creddits
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_v1_gold_gild_{fullname}
 	 * @param string $name Valid existing username or fullname of thing. Must provide $months if username
 	 * @param int $months Integer between 1 and 36
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function giveGold($name, $months = null) {
 		if (!is_string($name))
@@ -338,15 +359,15 @@ class Reddit {
 	}
 
 	/**
-	 * Delete link or comment
+	 * Delete Content
 	 *
 	 * Deletes a given link or comment created by the user
 	 *
 	 * @scope edit
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_del
 	 * @param string $id The fullname of the link or comment to delete (e.g. t3_1kuinv for link, t1_1kuinv for comment).
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteContent($id) {
 		if (!is_string($id))
@@ -361,7 +382,7 @@ class Reddit {
 	}
 
 	/**
-	 * Edit comment or self post
+	 * Edit Content
 	 *
 	 * Edits the content of a self post or comment created by the user
 	 *
@@ -369,8 +390,8 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_editusertext
 	 * @param string $id The fullname of the link or comment to delete (e.g. t3_1kuinv for link, t1_1kuinv for comment).
 	 * @param string $text The raw markdown text to replace the content with.
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function editContent($id, $text) {
 		if (!is_string($id) || !is_string($text))
@@ -389,14 +410,14 @@ class Reddit {
 	/**
 	 * Delete Update
 	 *
-	 * Delete an update from the thread
+	 * Deletes an update from the thread
 	 *
 	 * @scope edit
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_delete_update
 	 * @param string $id The ID of a single update. e.g. LiveUpdate_ff87068e-a126-11e3-9f93-12313b0b3603
 	 * @param string $thread
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteUpdate($id, $thread) {
 		if (!is_string($id) || !is_string($thread))
@@ -414,14 +435,14 @@ class Reddit {
 	/**
 	 * Strike Update
 	 *
-	 * Strike (mark incorrect and cross out) the content of an update
+	 * Strikes (marks incorrect and crosses out) the content of an update
 	 *
 	 * @scope edit
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_strike_update
 	 * @param string $id The ID of a single update. e.g. LiveUpdate_ff87068e-a126-11e3-9f93-12313b0b3603
 	 * @param string $thread
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function strikeUpdate($id, $thread) {
 		if (!is_string($id) || !is_string($thread))
@@ -439,14 +460,14 @@ class Reddit {
 	/**
 	 * Send Replies
 	 *
-	 * Enable or disable inbox replies for a link or comment
+	 * Enables or disables inbox replies for a link or comment
 	 *
 	 * @scope edit
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_sendreplies
 	 * @param string $id The fullename of a thing created by the user
 	 * @param bool $state Enable/disable
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function sendReplies($id, $state) {
 		if (!is_string($id))
@@ -466,14 +487,14 @@ class Reddit {
 	/**
 	 * Get User Flairs
 	 *
-	 * Recieve current or specific users flair options
+	 * Recieves current or specific users flair options
 	 *
 	 * @scope flair
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_flairselector
 	 * @param string $subreddit
 	 * @param string $name Available to subreddit moderators. Will return flair options for $name if specified.
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getUserFlairs($subreddit, $name = null) {
 		if (!is_string($subreddit))
@@ -492,14 +513,14 @@ class Reddit {
 	/**
 	 * Get Link Flairs
 	 *
-	 * Recieve link flair options
+	 * Recieves link flair options
 	 *
 	 * @scope flair
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_flairselector
 	 * @param string $subreddit
 	 * @param string $link The fullename of a link
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getLinkFlairs($subreddit, $link) {
 		if (!is_string($subreddit) || !is_string($link))
@@ -516,7 +537,7 @@ class Reddit {
 	/**
 	 * Set User Flairs
 	 *
-	 * Set current or specific users flair
+	 * Sets current or specific users flair
 	 *
 	 * @scope flair
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_selectflair
@@ -524,8 +545,8 @@ class Reddit {
 	 * @param string $template_id
 	 * @param string $text
 	 * @param string $name Available to subreddit moderators. Will return flair options for $name if specified.
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setUserFlair($subreddit, $template_id, $text, $name = null) {
 		if (!is_string($subreddit))
@@ -555,8 +576,8 @@ class Reddit {
 	 * @param string $link The fullename of a link
 	 * @param string $template_id
 	 * @param string $text No longer than 64 characters
-	 * @throws Exception|InvalidArgumentException
 	 * @return bool|object cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setLinkFlair($subreddit, $link, $template_id, $text) {
 		if (!is_string($subreddit) || !is_string($link) || !is_string($text))
@@ -582,8 +603,8 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_setflairenabled
 	 * @param string $subreddit
 	 * @param bool $state
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setFlairEnabled($subreddit, $state) {
 		if (!is_string($subreddit))
@@ -601,9 +622,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get historical user data
+	 * Get Current User History
 	 *
-	 * Get the historical data of a user
+	 * Gets the historical data of a user
 	 *
 	 * @scope history
 	 * @link http://www.reddit.com/dev/api/oauth#scope_history
@@ -611,12 +632,16 @@ class Reddit {
 	 * @param string $where The data to retrieve. One of overview, submitted, comments, liked, disliked, hidden, saved, gilded
 	 * @param string $sort Sort data. One of hot, new, top, controversial
 	 * @param string $time Filter by time. One of hour, day, week, month, year, all
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getCurrentUserHistory($username, $where, $sort = "new", $time = "all") {
 		if (!is_string($username) || !is_string($where) || !is_string($sort) || !is_string($time))
 			throw new InvalidArgumentException("getHistory method only accepts strings.");
+		elseif (!in_array($sort, ["hot", "new", "top", "controversial"]))
+			throw new InvalidArgumentException("\$sort parameter in getCurrentUserHistory method must be one of hot, new, top, controversial.");
+		elseif (!in_array($time, ["hour", "day", "week", "month", "year", "all"]))
+			throw new InvalidArgumentException("\$time parameter in getCurrentUserHistory method must be one of hour, day, week, month, year, all.");
 
 		$url = sprintf("%s/user/$username/$where?sort=$sort&t=$time", self::ENDPOINT_OAUTH);
 
@@ -624,9 +649,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get user
+	 * Get Current User
 	 *
-	 * Get data for the current user
+	 * Gets data for the current user
 	 *
 	 * @scope identity
 	 * @link http://www.reddit.com/dev/api#GET_api_v1_me
@@ -639,9 +664,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get user preferences
+	 * Get Current User Preferences
 	 *
-	 * Get preference data for the current user based on fields provided
+	 * Gets preference data for the current user based on fields provided
 	 *
 	 * @scope identity
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_v1_me_prefs
@@ -655,9 +680,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get user trophies
+	 * Get Current User Trophies
 	 *
-	 * Get current user trophies
+	 * Gets current user trophies
 	 *
 	 * @scope identity
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_v1_me_trophies
@@ -670,13 +695,15 @@ class Reddit {
 	}
 
 	/**
-	 * Accept a pending invitation to contribute to a live thread
+	 * Accept Live Thread Contributor Invite
+	 *
+	 * Accepts a pending invitation to contribute to a live thread
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_accept_contributor_invite
 	 * @param string $thread
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function acceptLiveThreadContributorInvite($thread) {
 		if (!is_string($thread))
@@ -691,13 +718,15 @@ class Reddit {
 	}
 
 	/**
-	 * Close a live thread
+	 * Close Live Thread
+	 *
+	 * Permanently closes a thread, disallowing future updates
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_close_thread
 	 * @param string $thread
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function closeLiveThread($thread) {
 		if (!is_string($thread))
@@ -712,14 +741,16 @@ class Reddit {
 	}
 
 	/**
-	 * Edit live thread
+	 * Edit Live Thread
+	 *
+	 * Configures a live thread
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_close_thread
 	 * @param string $thread
 	 * @param array $settings allowed keys: description (string), nsfw (bool), resources (string), title (string <= 120 char)
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function editLiveThread($thread, array $settings) {
 		$settings_cond = ["description" => "string", "nsfw" => "boolean", "resources" => "string", "title" => "string"];
@@ -743,7 +774,9 @@ class Reddit {
 	}
 
 	/**
-	 * Invite contributor to live thread
+	 * Invite Contributor To Live Thread
+	 *
+	 * Invites another user to contribute to the thread
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_invite_contributor
@@ -751,8 +784,8 @@ class Reddit {
 	 * @param string $name Name of an existing user
 	 * @param string $permissions Permission description e.g. +update,+edit,-manage
 	 * @param string $type One of liveupdate_contributor_invite, liveupdate_contributor
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function inviteContributorToLiveThread($thread, $name, $permissions, $type) {
 		if (!is_string($thread) || !is_string($name) || !is_string($permissions) || !is_string($type))
@@ -772,13 +805,15 @@ class Reddit {
 	}
 
 	/**
-	 * Leave contributor of live thread
+	 * Leave Contributor Of Live Thread
+	 *
+	 * Abdicates contributorship of the thread
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_leave_contributor
 	 * @param string $thread
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function leaveContributorOfLiveThread($thread) {
 		if (!is_string($thread))
@@ -793,14 +828,16 @@ class Reddit {
 	}
 
 	/**
-	 * Revoke another user's contributorship
+	 * Revoke Live Thread Contributorship
+	 *
+	 * Revokes another user's contributorship
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_rm_contributor
 	 * @param string $thread
 	 * @param string $id Fullname of a account
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function revokeLiveThreadContributorship($thread, $id) {
 		if (!is_string($thread) || !is_string($id))
@@ -816,7 +853,9 @@ class Reddit {
 	}
 
 	/**
-     * Set live thread contributor permissions
+     * Set Live Thread Contributor Permissions
+	 *
+	 * Changes a contributor or contributor invite's permissions
 	 *
 	 * @scope livemanage
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_live_{thread}_set_contributor_permissions
@@ -824,8 +863,8 @@ class Reddit {
 	 * @param string $name Name of an existing user
 	 * @param string $permissions Permission description e.g. +update,+edit,-manage
 	 * @param string $type One of liveupdate_contributor_invite, liveupdate_contributor
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setLiveThreadContributorPermissions($thread, $name, $permissions, $type) {
 		if (!is_string($thread) || !is_string($name) || !is_string($permissions) || !is_string($type))
@@ -847,11 +886,13 @@ class Reddit {
 	/**
 	 * Delete Banner
 	 *
+	 * Removes the subreddit's custom mobile banner
+	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_delete_sr_banner
 	 * @param string $subreddit The subreddit to use
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteBanner($subreddit) {
 		if (!is_string($subreddit))
@@ -867,13 +908,15 @@ class Reddit {
 	}
 
 	/**
-	 * Delete Banner
+	 * Delete Header
+	 *
+	 * Removes the subreddit's custom header image
 	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_delete_sr_header
 	 * @param string $subreddit The subreddit to use
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteHeader($subreddit) {
 		if (!is_string($subreddit))
@@ -891,11 +934,13 @@ class Reddit {
 	/**
 	 * Delete Icon
 	 *
+	 * Removes the subreddit's custom mobile icon
+	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_delete_sr_icon
 	 * @param string $subreddit The subreddit to use
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteIcon($subreddit) {
 		if (!is_string($subreddit))
@@ -913,12 +958,14 @@ class Reddit {
 	/**
 	 * Delete Image
 	 *
+	 * Removes an image from the subreddit's custom image set
+	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_delete_sr_img
 	 * @param string $subreddit The subreddit to use
 	 * @param string $name A valid subreddit image name
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteImage($subreddit, $name) {
 		if (!is_string($subreddit) || !is_string($name))
@@ -935,7 +982,9 @@ class Reddit {
 	}
 
 	/**
-	 * Upload subreddit image
+	 * Upload Image
+	 *
+	 * Adds or replaces a subreddit image, custom header logo, custom mobile icon, or custom mobile banner
 	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_upload_sr_img
@@ -943,8 +992,8 @@ class Reddit {
 	 * @param string $subreddit The subreddit to use
 	 * @param bool $logo Determine if image should be used as logo, ignores name if true
 	 * @param string $name Image name
-	 * @throws Exception|InvalidArgumentException
 	 * @return bool|object cURL Response
+	 * @throws Exception|InvalidArgumentException
 	 */
 	public function uploadImage($file, $subreddit, $logo = false, $name = "") {
 		if (!is_string($subreddit) || !is_string($name))
@@ -971,17 +1020,17 @@ class Reddit {
 	}
 
 	/**
-	 * Set stylesheet
+	 * Set Stylesheet
 	 *
-	 * Update stylesheet of subreddit
+	 * Updates stylesheet of subreddit
 	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_subreddit_stylesheet
 	 * @param string $subreddit The subreddit to use
 	 * @param string $content The new stylesheet content
 	 * @param string $reason Description, max 256 characters
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setStylesheet($subreddit, $content, $reason = "") {
 		if (!is_string($subreddit) || !is_string($content) || !is_string($reason))
@@ -1000,15 +1049,15 @@ class Reddit {
 	}
 
 	/**
-	 * Get stylesheet
+	 * Get Stylesheet
 	 *
-	 * Fetch stylesheet of subreddit
+	 * Fetches stylesheet of subreddit
 	 *
 	 * @scope any (?)
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_subreddit_stylesheet
 	 * @param string $subreddit The subreddit to use
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getStylesheet($subreddit) {
 		if (!is_string($subreddit))
@@ -1022,12 +1071,14 @@ class Reddit {
 	/**
 	 * Set Subreddit Settings
 	 *
+	 * Configures a subreddit
+	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_site_admin
 	 * @param string $subreddit The subreddit to use
 	 * @param array $opts Settings. For a list of available keys, check @link.
-	 * @throws InvalidArgumentException
 	 * @return bool|object cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setSubSettings($subreddit, array $opts) {
 		if (!is_string($subreddit))
@@ -1082,11 +1133,13 @@ class Reddit {
 	/**
 	 * Get Subreddit Settings
 	 *
+	 * Fetches the current settings of a subreddit
+	 *
 	 * @scope modconfig
 	 * @link http://www.reddit.com/dev/api/oauth#GET_r_{subreddit}_about_edit
 	 * @param string $subreddit The subreddit to use
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getSubSettings($subreddit) {
 		if (!is_string($subreddit))
@@ -1100,13 +1153,13 @@ class Reddit {
 	/**
 	 * Mute Message Author
 	 *
-	 * Mute user via modmail
+	 * Mutes user via modmail
 	 *
 	 * @scope modcontributors
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_mute_message_author
 	 * @param string $id The fullname of a thing to return results after
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function muteMessageAuthor($id) {
 		if (!is_string($id))
@@ -1124,13 +1177,13 @@ class Reddit {
 	/**
 	 * Unmute Message Author
 	 *
-	 * Unmute user via modmail
+	 * Unmutes user via modmail
 	 *
 	 * @scope modcontributors
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_unmute_message_author
 	 * @param string $id The fullname of a thing to return results after
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function unmuteMessageAuthor($id) {
 		if (!is_string($id))
@@ -1152,14 +1205,14 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_clearflairtemplates
 	 * @param string $subreddit
 	 * @param string $flair_type One of USER_FLAIR, LINK_FLAIR
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function clearFlairTemplates($subreddit, $flair_type) {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("\$subreddit parameter in clearFlairTemplates method must be of type string.");
 		elseif (!in_array($flair_type, ["USER_FLAIR", "LINK_FLAIR"]))
-			throw new InvalidArgumentException("Invalid \$flair_type value.");
+			throw new InvalidArgumentException("\$flair_type parameter in clearFlairTemplates method must be either USER_FLAIR or LINK_FLAIR.");
 
 		$url = sprintf("%s/r/$subreddit/api/clearflairtemplates", self::ENDPOINT_OAUTH);
 
@@ -1178,8 +1231,8 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_deleteflair
 	 * @param string $subreddit
 	 * @param string $user A user by name
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteFlair($subreddit, $user) {
 		if (!is_string($subreddit) || !is_string($user))
@@ -1202,8 +1255,8 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_deleteflairtemplate
 	 * @param string $subreddit
 	 * @param string $flair_template_id
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function deleteFlairTemplate($subreddit, $flair_template_id) {
 		if (!is_string($subreddit) || !is_string($flair_template_id))
@@ -1222,7 +1275,7 @@ class Reddit {
 	/**
 	 * Set flair
 	 *
-	 * Set or clear a user"s flair in a subreddit
+	 * Sets or clears a user's flair in a subreddit
 	 *
 	 * @scope modflair
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_flair
@@ -1230,8 +1283,8 @@ class Reddit {
 	 * @param string $user The name of the user
 	 * @param string $text Flair text to assign
 	 * @param string $cssClass CSS class to assign to the flair text
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setFlair($subreddit, $user, $text, $cssClass) {
 		if (!is_string($subreddit) || !is_string($user) || !is_string($text) || !is_string($cssClass))
@@ -1258,8 +1311,8 @@ class Reddit {
 	 * @param bool $flair_self_assign
 	 * @param string $link_flair_position Must be either left or right
 	 * @param bool $link_flair_self_assign
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setFlairConfig(
 		$subreddit,
@@ -1290,16 +1343,16 @@ class Reddit {
 	}
 
 	/**
-	 * Set flair CSV file
+	 * Set Flair CSV
 	 *
-	 * Post a CSV file of flair settings to a subreddit
+	 * Posts a CSV file of flair settings to a subreddit
 	 *
 	 * @scope modflair
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_flaircsv
 	 * @param string $subreddit The subreddit to use
 	 * @param string $flairCSV CSV file contents, up to 100 lines
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setFlairCSV($subreddit, $flairCSV) {
 		if (!is_string($subreddit) || !is_string($flairCSV))
@@ -1314,9 +1367,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get flair list
+	 * Get Flair List
 	 *
-	 * Download the flair assignments of a subreddit
+	 * Downloads the flair assignments of a subreddit
 	 *
 	 * @scope modflair
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_flairlist
@@ -1324,8 +1377,8 @@ class Reddit {
 	 * @param int $limit The maximum number of items to return (max 1000)
 	 * @param string $after Return entries starting after this user
 	 * @param string $before Return entries starting before this user
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getFlairList($subreddit, $limit = 25, $after = "", $before = "") {
 		if (!is_string($subreddit) || !is_string($after) || !is_string($before))
@@ -1353,6 +1406,8 @@ class Reddit {
 	/**
 	 * Get Moderation Log
 	 *
+	 * Fetches a list of recent moderation actions
+	 *
 	 * @scope modlog
 	 * @link http://www.reddit.com/dev/api/oauth#GET_about_log
 	 * @param string $subreddit The subreddit to use
@@ -1360,8 +1415,8 @@ class Reddit {
 	 * @param int $limit The maximum number of items to return (max 1000)
 	 * @param string $after Return entries starting after this user
 	 * @param string $before Return entries starting before this user
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getModLog($subreddit, $type, $limit = 25, $after = "", $before = "") {
 		if (!is_string($subreddit) || !is_string($after) || !is_string($before))
@@ -1396,8 +1451,8 @@ class Reddit {
 	 * @param string $name Name of existing user
 	 * @param string $permissions
 	 * @param string $type
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setPermissions($subreddit, $name, $permissions, $type) {
 		if (!is_string($subreddit) || !is_string($name) || !is_string($type))
@@ -1415,13 +1470,15 @@ class Reddit {
 	}
 
 	/**
-	 * Approve link or comment
+	 * Approve
+	 *
+	 * Approves a link or comment
 	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_approve
 	 * @param string $id Fullname of a thing
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function Approve($id) {
 		if (!is_string($id))
@@ -1436,14 +1493,16 @@ class Reddit {
 	}
 
 	/**
-	 * Distinguish link or comment
+	 * Distinguish
+	 *
+	 * Distinguishes a thing's author with a sigil
 	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_distinguish
 	 * @param string $id Fullname of a thing
 	 * @param string $how One of yes, no, admin, special
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function Distinguish($id, $how) {
 		if (!is_string($id))
@@ -1461,14 +1520,16 @@ class Reddit {
 	}
 
 	/**
-	 * Ignore Reports on Thing
+	 * Ignore Reports
+	 *
+	 * Prevents future reports on a thing from causing notifications
 	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_ignore_reports
 	 * @param string $id Fullname of a thing
 	 * @param bool $state Indicates whether ignore or unignore
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function ignoreReports($id, $state) {
 		if (!is_string($id))
@@ -1485,14 +1546,16 @@ class Reddit {
 	}
 
 	/**
-	 * Mark Thing as NSFW
+	 * Mark NSFW
+	 *
+	 * Marks a link NSFW
 	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_marknsfw
 	 * @param string $id Fullname of a thing
 	 * @param bool $state Indicates whether marking or unmarking
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function markNSFW($id, $state) {
 		if (!is_string($id))
@@ -1509,14 +1572,16 @@ class Reddit {
 	}
 
 	/**
-	 * Remove Link, Comment or modmail Message
+	 * Remove
+	 *
+	 * Removes a link, comment or modmail message
 	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_remove
 	 * @param string $id Fullname of a thing
 	 * @param bool $spam
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function remove($id, $spam = false) {
 		if (!is_string($id))
@@ -1536,12 +1601,14 @@ class Reddit {
 	/**
 	 * Set Contest Mode
 	 *
+	 * Sets or unsets "contest mode" for a link's comments
+	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_set_contest_mode
 	 * @param string $id Fullname of a thing
 	 * @param bool $state Indicates whether enabling or disabling contest mode
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setContestMode($id, $state) {
 		if (!is_string($id))
@@ -1562,12 +1629,14 @@ class Reddit {
 	/**
 	 * Set Sticky
 	 *
+	 * Sets or unsets a Link as the sticky in its subreddit
+	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_set_subreddit_sticky
 	 * @param string $id Fullname of a thing
 	 * @param bool $state Indicates whether adding or removing sticky
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setSticky($id, $state) {
 		if (!is_string($id))
@@ -1588,12 +1657,14 @@ class Reddit {
 	/**
 	 * Set Suggested Sort
 	 *
+	 * Sets a suggested sort for a link
+	 *
 	 * @scope modposts
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_set_suggested_sort
 	 * @param string $id Fullname of a thing
 	 * @param bool $sort Must be one of confidence, top, new, hot, controversial, old, random, qa, blank
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setSuggestedSort($id, $sort) {
 		if (!is_string($id))
@@ -1614,11 +1685,13 @@ class Reddit {
 	/**
 	 * Accept moderator invite
 	 *
+	 * Accepts an invite to moderate the specified subreddit
+	 *
 	 * @scope modself
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_accept_moderator_invite
 	 * @param string $subreddit
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function acceptModeratorInvite($subreddit) {
 		if (!is_string($subreddit))
@@ -1633,13 +1706,15 @@ class Reddit {
 	}
 
 	/**
-	 * Abdicate contributor status in subreddit
+	 * Leave Contributor
+	 *
+	 * Abdicates approved submitter status in a subreddit
 	 *
 	 * @scope modself
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_leavecontributor
 	 * @param string $id Fullname of a thing
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function leaveContributor($id) {
 		if (!is_string($id))
@@ -1655,13 +1730,15 @@ class Reddit {
 	}
 
 	/**
-	 * Abdicate moderator status in subreddit
+	 * Leave Moderator
+	 *
+	 * Abdicates moderator status in a subreddit
 	 *
 	 * @scope modself
 	 * @link https://www.reddit.com/dev/api/oauth#POST_api_leavemoderator
 	 * @param string $id Fullname of a thing
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function leaveModerator($id) {
 		if (!is_string($id))
@@ -1676,108 +1753,286 @@ class Reddit {
 		return self::runCurl($url, $postData);
 	}
 
-	/*
-	 * TODO: Missing modwiki api endpoints goes here.
+	/**
+	 * Set Wiki Editor
+	 *
+	 * Allows/denies a user to edit a wiki page
+	 *
+	 * @scope modwiki
+	 * @link https://www.reddit.com/dev/api/oauth#POST_api_wiki_alloweditor_{act}
+	 * @param string $username The name of an existing user
+	 * @param string $subreddit The name of an existing subreddit
+	 * @param string $page The name of an existing wiki page
+	 * @param string $act The action to perform. Must be either del or add.
+	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
+	public function setWikiEditor($username, $subreddit, $page, $act) {
+		if (!is_string($username) || !is_string($subreddit) || !is_string($page) || !is_string($act))
+			throw new InvalidArgumentException("setWikiEditor method only accepts strings.");
+		elseif (!in_array($act, ["del", "add"]))
+			throw new InvalidArgumentException("\$act parameter in setWikiEditor method must be one of del, add.");
+
+		$url = sprintf("%s/r/{$subreddit}/api/wiki/alloweditor/{$act}", self::ENDPOINT_OAUTH);
+		$postData = [
+			"act" => $act,
+			"page" => $page,
+			"username" => $username,
+		];
+
+		return self::runCurl($url, $postData);
+	}
 
 	/**
-	 * Get a wiki page
+	 * Hide Wiki Page
+	 *
+	 * Toggles the public visibility of a wiki page revision
+	 *
+	 * @scope modwiki
+	 * @link https://www.reddit.com/dev/api/oauth#POST_api_wiki_hide
+	 * @param string $subreddit The name of an existing subreddit
+	 * @param string $page The name of an existing wiki page
+	 * @param string $revID A wiki revision ID
+	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
+	 */
+	public function hideWikiPage($subreddit, $page, $revID) {
+		if (!is_string($subreddit) || !is_string($page) || !is_string($revID))
+			throw new InvalidArgumentException("hideWikiPage method only accepts strings.");
+
+		$url = sprintf("%s/r/{$subreddit}/api/wiki/hide", self::ENDPOINT_OAUTH);
+		$postData = [
+			"page" => $page,
+			"revision" => $revID,
+		];
+
+		return self::runCurl($url, $postData);
+	}
+
+	/**
+	 * Revert Wiki Page
+	 *
+	 * Toggles the public visibility of a wiki page revision
+	 *
+	 * @scope modwiki
+	 * @link https://www.reddit.com/dev/api/oauth#POST_api_wiki_revert
+	 * @param string $subreddit The name of an existing subreddit
+	 * @param string $page The name of an existing wiki page
+	 * @param string $revID A wiki revision ID
+	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
+	 */
+	public function revertWikiPage($subreddit, $page, $revID) {
+		if (!is_string($subreddit) || !is_string($page) || !is_string($revID))
+			throw new InvalidArgumentException("revertWikiPage method only accepts strings.");
+
+		$url = sprintf("%s/r/{$subreddit}/api/wiki/revert", self::ENDPOINT_OAUTH);
+		$postData = [
+			"page" => $page,
+			"revision" => $revID,
+		];
+
+		return self::runCurl($url, $postData);
+	}
+
+	/**
+	 * Get Wiki Page Settings
+	 *
+	 * Retrieves the current permission settings for a wiki page
+	 *
+	 * @scope modwiki
+	 * @link https://www.reddit.com/dev/api/oauth#GET_wiki_settings_{page}
+	 * @param string $subreddit The name of an existing subreddit
+	 * @param string $page The name of an existing wiki page
+	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
+	 */
+	public function getWikiPageSettings($subreddit, $page) {
+		if (!is_string($subreddit) || !is_string($page))
+			throw new InvalidArgumentException("getWikiPageSettings method only accepts strings.");
+
+		$url = sprintf("%s/r/{$subreddit}/wiki/settings/{$page}", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
+	}
+
+	/**
+	 * Set Wiki Page Settings
+	 *
+	 * Updates the permissions and visibility of wiki page
+	 *
+	 * @scope modwiki
+	 * @link https://www.reddit.com/dev/api/oauth#POST_wiki_settings_{page}
+	 * @param string $subreddit The name of an existing subreddit
+	 * @param string $page The name of an existing wiki page
+	 * @param integer $permLevel
+	 * @param boolean $listed
+	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
+	 */
+	public function setWikiPageSettings($subreddit, $page, $permLevel, $listed) {
+		if (!is_string($subreddit) || !is_string($page))
+			throw new InvalidArgumentException("\$subreddit & \$page parameters only accepts strings.");
+		elseif (!is_int($permLevel))
+			throw new InvalidArgumentException("\$permLevel parameter in setWikiPageSettings method must be of type integer.");
+		elseif (!is_bool($listed))
+			throw new InvalidArgumentException("\$listed parameter in setWikiPageSettings must be of type boolean.");
+
+		$url = sprintf("%s/r/{$subreddit}/wiki/settings/", self::ENDPOINT_OAUTH);
+		$postData = [
+			"page" => $page,
+			"listed" => $listed,
+			"permlevel" => $permLevel,
+		];
+
+		return self::runCurl($url, $postData);
+	}
+
+	/**
+	 * Edit Wiki Page
+	 *
+	 * Updates a wiki page
+	 *
+	 * @scope wikiedit
+	 * @link https://www.reddit.com/dev/api/oauth#POST_api_wiki_edit
+	 * @param string $subreddit The name of an existing subreddit
+	 * @param string $page The name of an existing wiki page
+	 * @param string $content
+	 * @param string $previous The starting point revision for this edit
+	 * @param string $reason A string up to 256 characters long, consisting of printable character
+	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
+	 */
+	public function editWikiPage($subreddit, $page, $content, $previous, $reason) {
+		if (!is_string($subreddit) || !is_string($page) || !is_string($content) || !is_string($previous) || !is_string($reason))
+			throw new InvalidArgumentException("editWikiPage method only accepts strings.");
+		elseif (!strlen($reason) > 256)
+			throw new InvalidArgumentException("\$reason parameter in editWikiPage method must not be longer than 256 characters.");
+
+		$url = sprintf("%s/r/{$subreddit}/api/wiki/edit", self::ENDPOINT_OAUTH);
+		$postData = [
+			"page" => $page,
+			"content" => $content,
+			"previous" => $previous,
+			"reason" => $reason,
+		];
+
+		return self::runCurl($url, $postData);
+	}
+
+	/**
+	 * Get Wiki Page
 	 *
 	 * Gets a specific wiki page from a subreddit
 	 *
 	 * @scope wikiread
 	 * @link http://www.reddit.com/dev/api#GET_wiki_{page}
-	 * @param string $sr The subreddit name
-	 * @param string $page The name of the wiki page
+	 * @param string $subreddit
+	 * @param string $page Name of the wiki page
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
-	public function getWikiPage($sr, $page) {
-		// TODO
-		$urlWikiPage = "http://reddit.com/r/{$sr}/wiki/{$page}.json";
+	public function getWikiPage($subreddit, $page) {
+		if (!is_string($subreddit) || !is_string($page))
+			throw new InvalidArgumentException("getWikiPage method only accepts strings.");
 
-		return self::runCurl($urlWikiPage);
+		$url = sprintf("%s/r/{$subreddit}/wiki/{$page}.json", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
 	}
 
 	/**
-	 * Get a listing of wiki pages
+	 * Get Wiki Pages
 	 *
 	 * Gets a listing of wiki pages for a subreddit
 	 *
 	 * @scope wikiread
 	 * @link http://www.reddit.com/dev/api#GET_wiki_pages
-	 * @param string $sr The subreddit name
+	 * @param string $subreddit
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
-	public function getWikiPages($sr) {
-		// TODO
-		$urlWikiPages = "http://reddit.com/r/{$sr}/wiki/pages.json";
+	public function getWikiPages($subreddit) {
+		if (!is_string($subreddit))
+			throw new InvalidArgumentException("getWikiPages method only accepts strings.");
 
-		return self::runCurl($urlWikiPages);
+		$url = sprintf("%s/r/{$subreddit}/wiki/pages.json", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
 	}
 
 	/**
-	 * Get a listing of Wiki page discussions
+	 * Get Wiki Page Discussion
 	 *
 	 * Gets the listing of subreddits wiki page discussions
 	 *
 	 * @scope wikiread
 	 * @link http://www.reddit.com/dev/api#GET_wiki_discussions_{page}
-	 * @param string $sr The subreddit name
-	 * @param string $page The name of the wiki page
+	 * @param string $subreddit
+	 * @param string $page Name of the wiki page
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
-	public function getWikiPageDiscussion($sr, $page) {
-		// TODO
-		$urlWikiPageDiscussions = "http://reddit.com/r/{$sr}/wiki/discussions/{$page}.json";
+	public function getWikiPageDiscussion($subreddit, $page) {
+		if (!is_string($subreddit) || !is_string($page))
+			throw new InvalidArgumentException("getWikiPageDiscussion method only accepts strings.");
 
-		return self::runCurl($urlWikiPageDiscussions);
+		$url = sprintf("%s/r/{$subreddit}/wiki/discussions/{$page}.json", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
 	}
 
 	/**
-	 * Get a listing of wiki revisions
+	 * Get Wiki Revisions
 	 *
 	 * Gets a listing of a subreddit"s wiki pages revisions
 	 *
 	 * @scope wikiread
 	 * @link http://www.reddit.com/dev/api#GET_wiki_revisions
-	 * @param string $sr The subreddit name
+	 * @param string $subreddit
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
-	public function getWikiRevisions($sr) {
-		// TODO
-		$urlWikiRevisions = "http://reddit.com/r/{$sr}/wiki/revisions.json";
+	public function getWikiRevisions($subreddit) {
+		if (!is_string($subreddit))
+			throw new InvalidArgumentException("getWikiRevisions method only accepts strings.");
 
-		return self::runCurl($urlWikiRevisions);
+		$url = sprintf("%s/r/{$subreddit}/wiki/revisions.json", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
 	}
 
 	/**
-	 * Get a listing of wiki page revisions
+	 * Get Wiki Page Revisions
 	 *
 	 * Gets a listing of a specific wiki page"s revisions
 	 *
 	 * @scope wikiread
 	 * @link http://www.reddit.com/dev/api#GET_wiki_revisions_{page}
-	 * @param string $sr The subreddit name
-	 * @param string $page The name of the wiki page
+	 * @param string $subreddit
+	 * @param string $page Name of the wiki page
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
-	public function getWikiPageRevisions($sr, $page) {
-		// TODO
-		$urlWikiPageRevisions = "http://reddit.com/r/{$sr}/wiki/revisions/{$page}.json";
+	public function getWikiPageRevisions($subreddit, $page) {
+		if (!is_string($subreddit) || !is_string($page))
+			throw new InvalidArgumentException("getWikiPageRevisions method only accepts strings.");
 
-		return self::runCurl($urlWikiPageRevisions);
+		$url = sprintf("%s/r/{$subreddit}/wiki/revisions/{$page}.json", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
 	}
 
 	/**
-	 * Get friend information
+	 * Get Friend Information
 	 *
-	 * Get information about a specified friend
+	 * Gets information about a specified friend
 	 *
 	 * @scope mysubreddits
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_v1_me_friends_{username}
 	 * @param string $username The username of a friend to search for details on
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getFriendInfo($username) {
 		if (!is_string($username))
@@ -1789,9 +2044,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get user karma breakdown
+	 * Get Karma
 	 *
-	 * Get breakdown of karma for the current user
+	 * Gets breakdown of karma for the current user
 	 *
 	 * @scope mysubreddits
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_v1_me_karma
@@ -1804,9 +2059,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get user subreddit relationships
+	 * Get Subreddit Relationship
 	 *
-	 * Get relationship information for subreddits that user belongs to
+	 * Gets relationship information for subreddits that user belongs to
 	 *
 	 * @scope mysubreddits
 	 * @link http://www.reddit.com/dev/api/oauth#GET_subreddits_mine_{where}
@@ -1815,8 +2070,8 @@ class Reddit {
 	 * @param int $limit The number of results to return. Default = 25, Max = 100.
 	 * @param string $after The fullname of a thing to return results after
 	 * @param string $before The fullname of a thing to return results before
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getSubRel($where = "subscriber", $limit = 25, $after = "", $before = "") {
 		if (!is_string($where) || !is_string($after) || !is_string($before))
@@ -1844,15 +2099,15 @@ class Reddit {
 	}
 
 	/**
-	 * Set content block state
+	 * Set Content Block
 	 *
 	 * Sets a given piece of content to a blocked state via the inbox
 	 *
 	 * @scope privatemessages
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_block
 	 * @param string $id The full name of the content to block (e.g. t4_ and the message id - t4_1kuinv).
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setContentBlock($id) {
 		if (!is_string($id))
@@ -1867,17 +2122,17 @@ class Reddit {
 	}
 
 	/**
-	 * Send message
+	 * Send Message
 	 *
-	 * Send a message to another user, from the current user
+	 * Sends a message to another user, from the current user
 	 *
 	 * @scope privatemessages
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_compose
 	 * @param string $to The name of a existing user to send the message to
 	 * @param string $subject The subject of the message, no longer than 100 characters
 	 * @param string $text The content of the message, in raw markdown
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function sendMessage($to, $subject, $text) {
 		if (!is_string($to) || !is_string($subject) || !is_string($text))
@@ -1894,7 +2149,7 @@ class Reddit {
 	}
 
 	/**
-	 * Set read / unread message state
+	 * Set Message State
 	 *
 	 * Sets the read and unread state of a comma separates list of messages
 	 *
@@ -1904,8 +2159,8 @@ class Reddit {
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_unread_message
 	 * @param string $state The state to set the messages to, either read, read_all or unread
 	 * @param array $ids A comma separated list of message fullnames (t4_ and the message id - e.g. t4_1kuinv).
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function setMessageState($state = "read", array $ids = null) {
 		if (!in_array($state, ["read", "read_all", "unread"]))
@@ -1925,12 +2180,14 @@ class Reddit {
 	/**
 	 * Get Notifications
 	 *
+	 * Gets notifications for the current user
+	 *
 	 * @scope privatemessages
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_v1_me_notifications
 	 * @param int $count Between 0 and 1000
 	 * @param string $sort One of new, old, None
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getNotificatsions($count = 30, $sort = "new") {
 		if (!is_int($count) || $count > 1000 || $count < 0)
@@ -1946,13 +2203,13 @@ class Reddit {
 	/**
 	 * Get messages
 	 *
-	 * Get messages (inbox / unread / sent) for the current user
+	 * Gets messages (inbox / unread / sent) for the current user
 	 *
 	 * @scope privatemessages
 	 * @link http://www.reddit.com/dev/api/oauth#GET_message_inbox
 	 * @param string $where The message type to return. One of inbox, unread, or sent
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getMessages($where = "inbox") {
 		if (!in_array($where, ["inbox", "unread", "sent"]))
@@ -1966,7 +2223,7 @@ class Reddit {
 	/**
 	 * Get Posts
 	 *
-	 * Get posts of subreddit who are [see @param $where ]
+	 * Get posts of subreddit which are [see @param $where]
 	 *
 	 * @scope read
 	 * @link http://www.reddit.com/dev/api/oauth#GET_about_{locations}
@@ -1976,8 +2233,8 @@ class Reddit {
 	 * @param int $limit The number of results to return (max 100)
 	 * @param string $after The fullname of a post which results should be returned after
 	 * @param string $before The fullname of a post which results should be returned before
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getPosts($where, $subreddit, $only = "", $limit = 25, $after = "", $before = "") {
 		if (!is_string($where) || !is_string($subreddit) || !is_string($only) || !is_string($after) || !is_string($before))
@@ -2009,9 +2266,9 @@ class Reddit {
 	}
 
 	/**
-	 * Search all subreddits
+	 * Search
 	 *
-	 * Get the listing of submissions from a subreddit
+	 * Searches links page
 	 *
 	 * @scope read
 	 * @link http://www.reddit.com/dev/api/oauth#GET_subreddits_search
@@ -2023,21 +2280,20 @@ class Reddit {
 	 * @param int $count The number of results to return
 	 * @param string $after The fullname of a thing to search for results after
 	 * @param string $before The fullname of a thing to search for results before
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function search($query, $subreddit = "", $sort = "relevance", $time = "all", $count = 0, $after = "", $before = "") {
-		// TODO
 		if (!is_int($count))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$count parameter in search method must be of type integer.");
 		elseif (strlen($query) > 512)
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$query parameter in search method must not be longer than 512 characters.");
 		elseif (!is_string($subreddit) || !is_string($after) || !is_string($before))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$subreddit, \$after & \$before parameters in search method must be of type string.");
 		elseif (!in_array($sort, ["relevance", "hot", "top", "new", "comments"]))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$sort parameter must be one of relevance, hot, top, new, comments.");
 		elseif (!in_array($time, ["hour", "day", "week", "month", "year", "all"]))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$time parameter must be one of hour, day, week, month, year, all.");
 
 		if ($subreddit)
 			$url = sprintf("/subreddits/search?", self::ENDPOINT_OAUTH);
@@ -2063,11 +2319,13 @@ class Reddit {
 	/**
 	 * Get Sidebar
 	 *
+	 * Gets the sidebar of a subreddit
+	 *
 	 * @scope read
 	 * @link http://www.reddit.com/dev/api/oauth#GET_sidebar
 	 * @param string $subreddit The subreddit to use
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getSidebar($subreddit) {
 		if (!is_string($subreddit))
@@ -2079,15 +2337,15 @@ class Reddit {
 	}
 
 	/**
-	 * Get user
+	 * Get User
 	 *
-	 * Get data for specific user
+	 * Gets data for specific user
 	 *
 	 * @scope read
 	 * @link http://www.reddit.com/dev/api#GET_user_{username}_about
 	 * @param string $username Name of existing user
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getUser($username) {
 		if (!is_string($username))
@@ -2099,9 +2357,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get users
+	 * Get Users
 	 *
-	 * Get users of subreddit who are [see @param $where ]
+	 * Gets users of subreddit who are [see @param $where]
 	 *
 	 * @scope read
 	 * @link http://www.reddit.com/dev/api/oauth#GET_about_{where}
@@ -2110,14 +2368,14 @@ class Reddit {
 	 * @param int $limit The number of results to return (max 100)
 	 * @param string $after The fullname of a post which results should be returned after
 	 * @param string $before The fullname of a post which results should be returned before
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getUsers($where, $subreddit, $limit = 25, $before = "", $after = "") {
 		if (!is_string($where) || !is_string($subreddit) || !is_string($after) || !is_string($before))
 			throw new InvalidArgumentException("\$where, \$subreddit, \$after and \$before parameters in getUsers method only accept strings.");
 		elseif (!in_array($where, ["banned", "muted", "wikibanned", "contributors", "wikicontributors", "moderators"]))
-			throw new InvalidArgumentException("Invalid \$where parameter in getUsers method.");
+			throw new InvalidArgumentException("\$where parameter must be one of banned, muted, wikibanned, contributors, wikicontributors, moderators.");
 		elseif (!is_int($limit))
 			throw new InvalidArgumentException("\$limit parameter in getUsers method must be of type integer.");
 		elseif ($limit > 100)
@@ -2139,20 +2397,19 @@ class Reddit {
 	}
 
 	/**
-	 * Get page information
+	 * Get Page Information
 	 *
-	 * Get information on a URLs submission on Reddit
+	 * Gets information on a URLs submission on Reddit
 	 *
 	 * @scope read
 	 * @link http://www.reddit.com/dev/api#GET_api_info
 	 * @param string $url The URL to get information for
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function getPageInfo($url) {
-		// TODO
 		if (!is_string($url))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$url parameter in getPageInfo method must be of type string.");
 
 		$url = sprintf("%s/api/info?url=%s", self::ENDPOINT_OAUTH, urlencode($url));
 
@@ -2160,22 +2417,23 @@ class Reddit {
 	}
 
 	/**
-	 * Hide Link
+	 * Hide
+	 *
+	 * Hides a link
 	 *
 	 * @scope report
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_hide
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_unhide
 	 * @param array $ids A list of link fullnames
 	 * @param bool $state Determine whether hide or unhide
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function hide(array $ids, $state = true) {
-		// TODO
 		if (!is_bool($state))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$state parameter in hide method must be of type boolean.");
 		elseif (empty($ids))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$ids array parameter in hide method must not be empty.");
 
 		$url = sprintf("%s/api/%shide", self::ENDPOINT_OAUTH, $state ? "" : "un");
 
@@ -2187,21 +2445,22 @@ class Reddit {
 	}
 
 	/**
-	 * Report Link
+	 * Report
+	 *
+	 * Reports a link, comment or message
 	 *
 	 * @scope report
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_report
 	 * @param string $id Fullname of a thing
 	 * @param string $reason Max 100 characters
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function report($id, $reason) {
-		// TODO
 		if (!is_string($id) || !is_string($reason))
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$id & \$reason parameters in report method must be of type string.");
 		elseif (strlen($reason) > 100)
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$reason parameter in report method must not be longer than 100 characters.");
 
 		$url = sprintf("%s/api/report", self::ENDPOINT_OAUTH);
 
@@ -2215,11 +2474,11 @@ class Reddit {
 	}
 
 	/**
-	 * Save post
+	 * Save
 	 *
-	 * Save a post to your account.  Save feeds:
-	 * http://www.reddit.com/saved/.xml
-	 * http://www.reddit.com/saved/.json
+	 * Saves a post to your account. Save feeds:
+	 * @link http://www.reddit.com/saved/.xml
+	 * @link http://www.reddit.com/saved/.json
 	 *
 	 * @scope save
 	 * @link http://www.reddit.com/dev/api#POST_api_save
@@ -2228,15 +2487,16 @@ class Reddit {
 	 *                     in the getSubscriptions() return value)
 	 * @param bool $state Determine whether save or unsave
 	 * @param string $category the categorty to save the post to
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function save($name, $state = true, $category = "") {
-		// TODO
-		if (!is_bool($state) || !is_string($category))
-			throw new InvalidArgumentException("");
+		if (!is_bool($state))
+			throw new InvalidArgumentException("\$state parameter in save method must be of type boolean.");
+		elseif (!is_string($name) || !is_string($category))
+			throw new InvalidArgumentException("\$name & \$category parameters in save method must be of type string.");
 		elseif ($state && !$category)
-			throw new InvalidArgumentException("");
+			throw new InvalidArgumentException("\$category parameter in save method must not be empty when \$state is true.");
 
 		$url = sprintf("%s/api/%ssave", self::ENDPOINT_OAUTH, $state ? "" : "un");
 
@@ -2253,9 +2513,9 @@ class Reddit {
 	}
 
 	/**
-	 * Get saved categories
+	 * Get Saved Categories
 	 *
-	 * Get a list of categories in which things are currently saved
+	 * Gets a list of categories in which things are currently saved
 	 *
 	 * @scope save
 	 * @link http://www.reddit.com/dev/api/oauth#GET_api_saved_categories
@@ -2268,7 +2528,7 @@ class Reddit {
 	}
 
 	/**
-	 * Create new story
+	 * Create Story
 	 *
 	 * Creates a new story on a particular subreddit
 	 *
@@ -2279,13 +2539,16 @@ class Reddit {
 	 * @param string $type One of link, self
 	 * @param string $text Text body if $type is self, else link url
 	 * @param bool $send_replies
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function createStory($title, $subreddit, $type, $text, $send_replies = true) {
-		// TODO
-		if (!in_array($type, ["link", "self"]))
-			throw new InvalidArgumentException("");
+		if (!is_bool($send_replies))
+			throw new InvalidArgumentException("\$state parameter in createStory method must be of type boolean.");
+		elseif (!is_string($title) || !is_string($subreddit) || !is_string($type) || !is_string($text))
+			throw new InvalidArgumentException("\$title, \$subreddit, \$type & \$text parameters in createStory method must be of type string.");
+		elseif (!in_array($type, ["link", "self"]))
+			throw new InvalidArgumentException("\$type parameter in createStory method must be one of link, self.");
 
 		$url = sprintf("%s/api/submit", self::ENDPOINT_OAUTH);
 
@@ -2306,19 +2569,22 @@ class Reddit {
 	}
 
 	/**
-	 * Subscribe to Subreddit
+	 * Subscribe
+	 *
+	 * Subscribes or unsubscribes from a subreddit
 	 *
 	 * @scope subscribe
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_subscribe
 	 * @param string $subreddit
 	 * @param bool $state Determine whether to subscribe or unsubscribe
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function subscribe($subreddit, $state = true) {
-		// TODO
-		if (!is_string($subreddit) || !is_bool($state))
-			throw new InvalidArgumentException("");
+		if (!is_bool($state))
+			throw new InvalidArgumentException("\$state parameter in subscribe method must be of type boolean.");
+		elseif (!is_string($subreddit))
+			throw new InvalidArgumentException("\$subreddit parameter in subscribe method must be of type string.");
 
 		$url = sprintf("%s/subscribe", self::ENDPOINT_OAUTH);
 		$postData = [
@@ -2330,7 +2596,7 @@ class Reddit {
 	}
 
 	/**
-	 * Vote on a story
+	 * Vote
 	 *
 	 * Adds a vote (up / down / neutral) on a story
 	 *
@@ -2339,13 +2605,16 @@ class Reddit {
 	 * @param string $name The full name of the post to vote on (name parameter
 	 *                     in the getSubscriptions() return value)
 	 * @param int $vote The vote to be made (1 = upvote, 0 = no vote, -1 = downvote)
-	 * @throws InvalidArgumentException
 	 * @return object|bool cURL Response
+	 * @throws InvalidArgumentException
 	 */
 	public function vote($name, $vote = 1) {
-		// TODO
-		if (!is_string($name) || !is_bool($vote))
-			throw new InvalidArgumentException("");
+		if (!is_bool($vote))
+			throw new InvalidArgumentException("\$vote parameter in vote method must be of type boolean.");
+		elseif (!is_string($name))
+			throw new InvalidArgumentException("\$name parameter in vote method must be of type string.");
+		elseif (!in_array($name, [-1, 0, 1]))
+			throw new InvalidArgumentException("\$name parameter in vote method must be one of -1, 0, 1.");
 
 		$url = sprintf("%s/api/vote", self::ENDPOINT_OAUTH);
 		$postData = [
@@ -2356,50 +2625,55 @@ class Reddit {
 		return self::runCurl($url, $postData);
 	}
 
-	/*
-	 * TODO: Additional missing api endpoints goes here.
-	 */
-
 	/**
 	 * Get Raw JSON
 	 *
-	 * Get Raw JSON for a reddit permalink
-	 * @param string $permalink permalink to get raw JSON for
+	 * Gets Raw JSON for a reddit permalink
+	 *
+	 * @param string $permalink Permalink to get raw JSON for
 	 * @return object|bool cURL Response
 	 */
 	public function getRawJSON($permalink) {
-		// TODO
-		$urlListing = self::ENDPOINT_OAUTH . "/{$permalink}.json";
+		if (!is_string($permalink))
+			throw new InvalidArgumentException("\$permalink parameter in getRawJSON method must be of type string.");
 
-		return self::runCurl($urlListing);
+		$url = sprintf("%s/{$permalink}.json", self::ENDPOINT_OAUTH);
+
+		return self::runCurl($url);
 	}
 
 	/**
-	 * Set post report state
+	 * Set Post Report State
 	 *
-	 * Hide, unhide, or report a post on your account
+	 * Hides, unhides, or reports a post on your account
+	 *
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_hide
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_unhide
 	 * @link http://www.reddit.com/dev/api/oauth#POST_api_report
-	 * @param string $state The state to set the post to, either hide, unhide, or report
 	 * @param string $name The fullname of the post to hide, unhide, or report (name
 	 *                parameter in the getSubscriptions() return value)
+	 * @param string $state The state to set the post to, either hide, unhide, or report
 	 * @return object|bool cURL Response
 	 */
-	public function setPostReportState($state = "hide", $name) {
-		// TODO
-		$response = null;
-		if ($name) {
-			$urlReportState = self::ENDPOINT_OAUTH . "/api/$state";
-			$postData = "id=$name";
-			$response = self::runCurl($urlReportState, $postData);
-		}
+	public function setPostReportState($name, $state = "hide") {
+		if (!is_string($name) || !is_string($state))
+			throw new InvalidArgumentException("\$name & \$state parameters in setPostReportState method must be of type string.");
+		elseif (!in_array($state, ["hide", "unhide", "report"]))
+			throw new InvalidArgumentException("\$state parameter in vote method must be one of hide, unhide, report.");
 
-		return $response;
+		$url = sprintf("%s/api/{$state}", self::ENDPOINT_OAUTH);
+		$postData = [
+			"id" => $name,
+		];
+
+		return self::runCurl($url, $postData);
 	}
 
 	/**
-	 * Check if scope is valid
+	 * Validate Scope
+	 *
+	 * Checks if scope is valid
+	 *
 	 * @param string|array $scope
 	 * @return bool
 	 */
@@ -2414,7 +2688,10 @@ class Reddit {
 	}
 
 	/**
-	 * Save token in a cookie
+	 * Save Token
+	 *
+	 * Saves token in a cookie
+	 *
 	 * @return null
 	 */
 	private function saveToken() {
@@ -2433,42 +2710,63 @@ class Reddit {
 	}
 
 	/**
-	 * Recieve token from cookie
+	 * Get Token
+	 *
+	 * Gets token from cookie
+	 *
 	 * @return bool success, will return false if no cookie is set.
 	 */
 	private function getToken() {
-		if (!isset($_COOKIE["reddit_token"]))
-			return false;
+		if (isset($_COOKIE["reddit_token"])) {
+			$token_info = explode(":", $_COOKIE["reddit_token"]);
 
-		$token_info = explode(":", $_COOKIE["reddit_token"]);
+			$this->token_type = $token_info[0];
+			$this->access_token = $token_info[1];
+			$this->scope = $token_info[2];
+			$this->authorized_timestamp = $token_info[3];
+			$this->expire_timestamp = $token_info[4];
+			$this->refresh_token = @$token_info[5];
 
-		$this->token_type = $token_info[0];
-		$this->access_token = $token_info[1];
-		$this->scope = $token_info[2];
-		$this->authorized_timestamp = $token_info[3];
-		$this->expire_timestamp = $token_info[4];
-		$this->refresh_token = @$token_info[5];
+			return true;
+		} elseif ($this->access_token) {
+			return true;
+		}
 
-		return true;
+		return false;
 	}
 
 	/**
-	 * Revoke token
+	 * Revoke Token
+	 *
+	 * Revokes the token
+	 *
 	 * @return object|bool cURL Response
 	 */
 	private function revokeToken() {
-		unset($_COOKIE["reddit_token"]);
+		if (isset($_COOKIE["reddit_token"])) {
+			unset($_COOKIE["reddit_token"]);
+			setcookie("reddit_token", "", time() - 3600);
+		}
 
 		$postData = [
 			"token" => $this->refresh_token ? $this->refresh_token : $this->access_token,
 			"token_type_hint" => $this->refresh_token ? "refresh_token" : "access_token"
 		];
 
-		return self::runCurl(self::ENDPOINT_OAUTH_REVOKE, $postData);
+		// TODO: this returns a 401 response
+		$response = self::runCurl(self::ENDPOINT_OAUTH_REVOKE, $postData);
+
+		unset($this->token_type, $this->access_token, $this->scope, $this->authorized_timestamp,
+			$this->expire_timestamp, $this->refresh_token);
+
+		return $response;
 	}
 
 	/**
-	 * Refresh token
+	 * Refresh Token
+	 *
+	 * Fetches and stores a new token
+	 *
 	 * @param bool|int $remember Number of seconds to remember user (uses cookies), false if not at all (default).
 	 * @return object|bool cURL Response
 	 */
@@ -2500,7 +2798,7 @@ class Reddit {
 	/**
 	 * Get Transfer Info
 	 *
-	 * Get information regarding last curl transfer
+	 * Gets information regarding last curl transfer
 	 *
 	 * @param string $opt Return specific information
 	 * @return mixed cURL transfer information
@@ -2513,15 +2811,15 @@ class Reddit {
 	}
 
 	/**
-	 * cURL request
+	 * Run cURL
 	 *
-	 * General cURL request function for GET and POST
+	 * Sends cURL request for GET and POST
 	 *
 	 * @param string $url URL to be requested
 	 * @param array $postVals NVP string to be send with POST request
 	 * @param bool $auth is it an authentication request
-	 * @throws Exception
 	 * @return bool|object cURL Response
+	 * @throws Exception
 	 */
 	private function runCurl($url, array $postVals = null, $auth = false) {
 		$ch = curl_init($url);
