@@ -321,7 +321,7 @@ class Reddit {
 		if (!is_string($iden))
 			throw new InvalidArgumentException("getCaptchaImg method only accepts strings.");
 
-		$url = sprintf("%s/captcha/$iden", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/captcha/{$iden}", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -423,7 +423,7 @@ class Reddit {
 		if (!is_string($id) || !is_string($thread))
 			throw new InvalidArgumentException("deleteUpdate method only accepts strings.");
 
-		$url = sprintf("%s/api/live/$thread/delete_update", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/delete_update", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"id" => $id,
@@ -448,7 +448,7 @@ class Reddit {
 		if (!is_string($id) || !is_string($thread))
 			throw new InvalidArgumentException("strikeUpdate method only accepts strings.");
 
-		$url = sprintf("%s/api/live/$thread/strike_update", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/strike_update", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"id" => $id,
@@ -500,7 +500,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("getUserFlairs method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/flairselector", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/flairselector", self::ENDPOINT_OAUTH);
 
 		if ($name)
 			$postData = ["name" => $name];
@@ -526,7 +526,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($link))
 			throw new InvalidArgumentException("getLinkFlairs method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/flairselector", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/flairselector", self::ENDPOINT_OAUTH);
 		$postData = [
 			"link" => $link,
 		];
@@ -552,7 +552,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("setUserFlair method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/selectflair", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/selectflair", self::ENDPOINT_OAUTH);
 
 		if ($name)
 			$postData = [
@@ -585,7 +585,7 @@ class Reddit {
 		elseif (strlen($text) > 64)
 			throw new InvalidArgumentException("\$text parameter in setLinkFlair method must not be longer than 64 characters.");
 
-		$url = sprintf("%s/r/$subreddit/api/selectflair", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/selectflair", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"flair_template_id" => $template_id,
@@ -612,7 +612,7 @@ class Reddit {
 		elseif (!is_bool($state))
 			throw new InvalidArgumentException("\$state parameter in setLinkFlair method only accepts boolean.");
 
-		$url = sprintf("%s/r/$subreddit/api/selectflair", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/selectflair", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"flair_enabled" => $state,
@@ -643,7 +643,7 @@ class Reddit {
 		elseif (!in_array($time, ["hour", "day", "week", "month", "year", "all"]))
 			throw new InvalidArgumentException("\$time parameter in getCurrentUserHistory method must be one of hour, day, week, month, year, all.");
 
-		$url = sprintf("%s/user/$username/$where?sort=$sort&t=$time", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/user/{$username}/{$where}?sort={$sort}&t={$time}", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -709,7 +709,7 @@ class Reddit {
 		if (!is_string($thread))
 			throw new InvalidArgumentException("\$thread parameter in acceptLiveThreadContributorInvite method only accepts string.");
 
-		$url = sprintf("%s/api/live/$thread/accept_contributor_invite", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/accept_contributor_invite", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 		];
@@ -732,7 +732,7 @@ class Reddit {
 		if (!is_string($thread))
 			throw new InvalidArgumentException("\$thread parameter in closeLiveThread method only accepts string.");
 
-		$url = sprintf("%s/api/live/$thread/close_thread", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/close_thread", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 		];
@@ -765,7 +765,7 @@ class Reddit {
 		} elseif (isset($settings["title"]) && strlen($settings["title"]) > 120)
 			throw new InvalidArgumentException("\$settings['title'] parameter in editLiveThread method must not be longer than 120 characters.");
 
-		$url = sprintf("%s/api/live/$thread/edit", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/edit", self::ENDPOINT_OAUTH);
 		$postData = array_merge([
 			"api_type" => "json",
 		], $settings);
@@ -793,7 +793,7 @@ class Reddit {
 		elseif (in_array($type, ["liveupdate_contributor_invite", "liveupdate_contributor"]))
 			throw new InvalidArgumentException("\$type parameter must be one of liveupdate_contributor_invite, liveupdate_contributor.");
 
-		$url = sprintf("%s/api/live/$thread/invite_contributor", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/invite_contributor", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"name" => $name,
@@ -819,7 +819,7 @@ class Reddit {
 		if (!is_string($thread))
 			throw new InvalidArgumentException("\$thread parameter in editLiveThread method only accepts string.");
 
-		$url = sprintf("%s/api/live/$thread/leave_contributor", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/leave_contributor", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 		];
@@ -843,7 +843,7 @@ class Reddit {
 		if (!is_string($thread) || !is_string($id))
 			throw new InvalidArgumentException("\$thread & \$id parameters only accepts string.");
 
-		$url = sprintf("%s/api/live/$thread/rm_contributor", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/rm_contributor", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"id" => $id,
@@ -872,7 +872,7 @@ class Reddit {
 		elseif (in_array($type, ["liveupdate_contributor_invite", "liveupdate_contributor"]))
 			throw new InvalidArgumentException("\$type parameter must be one of liveupdate_contributor_invite, liveupdate_contributor.");
 
-		$url = sprintf("%s/api/live/$thread/set_contributor_permissions", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/live/{$thread}/set_contributor_permissions", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"name" => $name,
@@ -898,7 +898,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("deleteBanner method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/delete_sr_banner", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/delete_sr_banner", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -922,7 +922,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("deleteHeader method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/delete_sr_header", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/delete_sr_header", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -946,7 +946,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("deleteIcon method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/delete_sr_icon", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/delete_sr_icon", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -971,7 +971,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($name))
 			throw new InvalidArgumentException("deleteImage method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/delete_sr_img", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/delete_sr_img", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -1003,7 +1003,7 @@ class Reddit {
 		elseif (!is_string($file) || !file_exists($file))
 			throw new Exception("$file does not exist.");
 
-		$url = sprintf("%s/r/$subreddit/api/upload_sr_img", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/upload_sr_img", self::ENDPOINT_OAUTH);
 		$ext = pathinfo($file)["extension"];
 
 		if (!in_array($ext, ["jpg", "jpeg", "png"]))
@@ -1036,7 +1036,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($content) || !is_string($reason))
 			throw new InvalidArgumentException("setStylesheet method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/subreddit_stylesheet", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/subreddit_stylesheet", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -1063,7 +1063,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("getStylesheet method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/about/stylesheet", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/about/stylesheet", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -1145,7 +1145,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("getSubSettings method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/about/edit", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/about/edit", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -1214,7 +1214,7 @@ class Reddit {
 		elseif (!in_array($flair_type, ["USER_FLAIR", "LINK_FLAIR"]))
 			throw new InvalidArgumentException("\$flair_type parameter in clearFlairTemplates method must be either USER_FLAIR or LINK_FLAIR.");
 
-		$url = sprintf("%s/r/$subreddit/api/clearflairtemplates", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/clearflairtemplates", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -1238,7 +1238,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($user))
 			throw new InvalidArgumentException("deleteFlair method only accept strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/deleteflair", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/deleteflair", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -1262,7 +1262,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($flair_template_id))
 			throw new InvalidArgumentException("deleteFlairTemplate method only accept strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/deleteflairtemplate", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/deleteflairtemplate", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"api_type" => "json",
@@ -1290,7 +1290,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($user) || !is_string($text) || !is_string($cssClass))
 			throw new InvalidArgumentException("setFlair method only accept strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/flair", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/flair", self::ENDPOINT_OAUTH);
 		$postData = [
 			"name" => $user,
 			"text" => $text,
@@ -1329,7 +1329,7 @@ class Reddit {
 		elseif (!is_bool($flair_enabled) || !is_bool($flair_self_assign) || !is_bool($link_flair_self_assign))
 			throw new InvalidArgumentException("Unexpected parameter type in setFlairConfig method when expecting boolean.");
 
-		$url = sprintf("%s/r/$subreddit/api/flairconfig", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/flairconfig", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"flair_enabled" => $flair_enabled,
@@ -1358,7 +1358,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($flairCSV))
 			throw new InvalidArgumentException("setFlairCSV method only accept strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/flaircsv", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/flaircsv", self::ENDPOINT_OAUTH);
 		$postData = [
 			"flair_csv" => $flairCSV,
 		];
@@ -1388,7 +1388,7 @@ class Reddit {
 		elseif ($limit > 1000)
 			throw new InvalidArgumentException("\$limit parameter in getFlairList method must less than 1000");
 
-		$url = sprintf("%s/r/$subreddit/api/flairlist?", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/flairlist?", self::ENDPOINT_OAUTH);
 		$postData = [
 			"limit" => $limit,
 		];
@@ -1426,7 +1426,7 @@ class Reddit {
 		elseif ($limit > 1000)
 			throw new InvalidArgumentException("\$limit parameter in getModLog method must less than 1000");
 
-		$url = sprintf("%s/r/$subreddit/about/log?", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/about/log?", self::ENDPOINT_OAUTH);
 		$postData = [
 			"limit" => $limit,
 			"type" => $type,
@@ -1458,7 +1458,7 @@ class Reddit {
 		if (!is_string($subreddit) || !is_string($name) || !is_string($type))
 			throw new InvalidArgumentException("setPermissions method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/setpermissions", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/setpermissions", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 			"name" => $name,
@@ -1697,7 +1697,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("acceptModeratorInvite method only accepts strings.");
 
-		$url = sprintf("%s/r/$subreddit/api/accept_moderator_invite", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/api/accept_moderator_invite", self::ENDPOINT_OAUTH);
 		$postData = [
 			"api_type" => "json",
 		];
@@ -2038,7 +2038,7 @@ class Reddit {
 		if (!is_string($username))
 			throw new InvalidArgumentException("getFriendInfo method only accepts strings.");
 
-		$url = sprintf("%s/api/v1/me/friends/$username", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/api/v1/me/friends/{$username}", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -2083,7 +2083,7 @@ class Reddit {
 		elseif ($limit > 100)
 			throw new InvalidArgumentException("\$limit parameter in getSubRel method must less than 100");
 
-		$url = sprintf("%s/subreddits/mine/$where?", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/subreddits/mine/{$where}?", self::ENDPOINT_OAUTH);
 		$postData = [
 			"limit" => $limit,
 		];
@@ -2189,11 +2189,11 @@ class Reddit {
 	 * @return object|bool cURL Response
 	 * @throws InvalidArgumentException
 	 */
-	public function getNotificatsions($count = 30, $sort = "new") {
+	public function getNotifications($count = 30, $sort = "new") {
 		if (!is_int($count) || $count > 1000 || $count < 0)
-			throw new InvalidArgumentException("\$count parameter in getNotificatsions method must be an integer between 0 and 1000.");
+			throw new InvalidArgumentException("\$count parameter in getNotifications method must be an integer between 0 and 1000.");
 		elseif (!in_array($sort, ["new", "old", "None"]))
-			throw new InvalidArgumentException("\$sort parameter in getNotificatsions method must be either new, old or None.");
+			throw new InvalidArgumentException("\$sort parameter in getNotifications method must be either new, old or None.");
 
 		$url = sprintf("%s/api/v1/me/notifications", self::ENDPOINT_OAUTH);
 
@@ -2215,7 +2215,7 @@ class Reddit {
 		if (!in_array($where, ["inbox", "unread", "sent"]))
 			throw new InvalidArgumentException("\$where parameter in getMessages method must be either inbox, unread or sent.");
 
-		$url = sprintf("%s/message/$where", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/message/{$where}", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -2247,9 +2247,9 @@ class Reddit {
 			throw new InvalidArgumentException("\$limit parameter in getPosts method must be less than 100");
 
 		if (in_array($where, ["new", "hot", "random", "top", "controversial"]))
-			$url = sprintf("%s/r/$subreddit/$where?", self::ENDPOINT_OAUTH);
+			$url = sprintf("%s/r/{$subreddit}/{$where}?", self::ENDPOINT_OAUTH);
 		else
-			$url = sprintf("%s/r/$subreddit/about/$where?", self::ENDPOINT_OAUTH);
+			$url = sprintf("%s/r/{$subreddit}/about/{$where}?", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"limit" => $limit,
@@ -2298,7 +2298,7 @@ class Reddit {
 		if ($subreddit)
 			$url = sprintf("/subreddits/search?", self::ENDPOINT_OAUTH);
 		else
-			$url = sprintf("/r/$subreddit/search?", self::ENDPOINT_OAUTH);
+			$url = sprintf("/r/{$subreddit}/search?", self::ENDPOINT_OAUTH);
 
 		$postData = [
 			"syntax" => "cloudsearch",
@@ -2331,7 +2331,7 @@ class Reddit {
 		if (!is_string($subreddit))
 			throw new InvalidArgumentException("\$subreddit parameter in getSidebar method must be of type string.");
 
-		$url = sprintf("%s/r/$subreddit/sidebar", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/sidebar", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -2351,7 +2351,7 @@ class Reddit {
 		if (!is_string($username))
 			throw new InvalidArgumentException("\$username parameter in getUser method must be of type string.");
 
-		$url = sprintf("%s/user/$username/about", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/user/{$username}/about", self::ENDPOINT_OAUTH);
 
 		return self::runCurl($url);
 	}
@@ -2381,7 +2381,7 @@ class Reddit {
 		elseif ($limit > 100)
 			throw new InvalidArgumentException("\$limit parameter in getUsers method must be less than 100");
 
-		$url = sprintf("%s/r/$subreddit/about/$where?", self::ENDPOINT_OAUTH);
+		$url = sprintf("%s/r/{$subreddit}/about/{$where}?", self::ENDPOINT_OAUTH);
 		$postData = [
 			"limit" => $limit,
 		];
